@@ -39,7 +39,7 @@ def doggoBot(post_number):
     else: makeDoggoTweet(post_number)
 
 def likeTweets():
-    bot_id = 1316050903531687945
+    bot_id = # Set this to the accounts ID to prevent it from liking its own tweets
     auth = tweepy.OAuthHandler(' {TWITTER INFO} ',' {TWITTER INFO} ')
     auth.set_access_token(' {TWITTER INFO} ',' {TWITTER INFO} ')
     api = tweepy.API(auth, wait_on_rate_limit=True)
