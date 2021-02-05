@@ -33,9 +33,9 @@ class DoggoBot:
 
     #run doggo bot
     def doggoBot(self, post_number):
-        dogImage()
-        if detectDoggoFace(): doggoBot(post_number)
-        else: makeDoggoTweet(post_number)
+        self.dogImage()
+        if self.detectDoggoFace(): self.doggoBot(post_number)
+        else: self.makeDoggoTweet(post_number)
 
     def likeTweets(self):
         bot_id = # Set this to the accounts ID to prevent it from liking its own tweets
