@@ -1,84 +1,85 @@
-import requests
+import requests, cv2, tweepy, os
 from PIL import Image
 from io import BytesIO
-import cv2
-import tweepy
-import time
 
-class DoggoBot:
-    #gets image from api
-    def dogImage(self):
-        r = requests.get('https://dog.ceo/api/breeds/image/random')
-        json_data = r.json()
-        b = requests.get(json_data['message'])
-        img = Image.open(BytesIO(b.content))
-        img = img.convert('RGB')
-        img.save(' {IMAGE FILE PATH} ', format = 'jpeg')
+class TwitterHandler:
+    def __init__(self):
+        self.__file_path=os.path.dirname(os.path.realpath(__file__))
+        self.__oauth=["TWITTER-OAUTH", "TWITTER-OAUTH"]
+        self.__token=["TWITTER-TOKEN","TWITTER-TOKEN"]
+        self.__auth=tweepy.OAuthHandler(self.__oauth[0],self.__oauth[1])
+        self.__auth.set_access_token(self.__token[0],self.__token[1])
+        self.__api=tweepy.API(self.__auth, wait_on_rate_limit=True)
+        self.__bot_id=self.__api.me().id
 
-    #checks if any faces are in image
-    def detectDoggoFace(self):
-        check = cv2.imread(' {IMAGE FILE PATH} ')
+    def makeTweet(self):
+        post_number=FileHandler()
+        self.__api.update_with_media(os.path.join(self.__file_path, "dog_image.jpg"), status=f'Doggo Post: {post_number.count}\n#gooddog')
+
+    def likeTweets(self):
+        blacklist=['k9', 'biden' , 'trump', 'police', 'officer', 'feral', 'tits', 'furry', 'adidas', 'kpop', 'post:', 'furryart', 'artistontwitter']
+        already_liked=[j.id for i in range(1,3) for j in self.__api.favorites(count=75,page=i)]
+        tag_list = ['#gooddog','#puppy','#dog']
+        for i in tag_list:
+            for j in self.__api.search(i,count=30):
+                if j.user.id!=self.__bot_id and not any(i in j.text.lower().split() for i in blacklist) and j.id not in already_liked:
+                    try:
+                        self.__api.create_favorite(j.id)
+                    except Exception:
+                        pass
+
+        for i in self.__api.mentions_timeline(count=25):
+            if i.user.id!=self.__bot_id and not any(i in j.text.lower().split() for i in blacklist):
+                try:
+                    self.__api.create_favorite(i.id)
+                except Exception:
+                    pass
+
+class ImageHandler:
+    def __init__(self):
+        self.__file_path=os.path.dirname(os.path.realpath(__file__))
+        self.__url="https://dog.ceo/api/breeds/image/random"
+
+    def fetchImage(self):
+        image_url=requests.get(self.__url).json()["message"]
+        img=Image.open(BytesIO(requests.get(image_url).content))
+        img=img.convert("RGB")
+        img.save(os.path.join(self.__file_path, "dog_image.jpg"), format='jpeg')
+        if self.detectFace():
+            fetchImage()
+        
+    def detectFace(self):
+        check = cv2.imread(os.path.join(self.__file_path, "dog_image.jpg"))
         grey_scale = cv2.cvtColor(check, cv2.COLOR_BGR2GRAY)
-        check_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
+        check_cascade = cv2.CascadeClassifier(os.path.join(self.__file_path, 'haarcascade_frontalface_alt.xml'))
         face_check = check_cascade.detectMultiScale(grey_scale, scaleFactor=1.1, minNeighbors=5)
         if len(face_check) == 0: return False
         return True
 
-    #post image to twitter
-    def makeDoggoTweet(self, post_number):
-        auth = tweepy.OAuthHandler(' {TWITTER INFO} ',' {TWITTER INFO} ')
-        auth.set_access_token(' {TWITTER INFO} ',' {TWITTER INFO} ')
-        api = tweepy.API(auth, wait_on_rate_limit=True)
-        api.update_with_media(' {IMAGE FILE PATH} ', status=f'Doggo Post: {post_number}\n#gooddog')
-
-    #run doggo bot
-    def doggoBot(self, post_number):
-        self.dogImage()
-        if self.detectDoggoFace(): self.doggoBot(post_number)
-        else: self.makeDoggoTweet(post_number)
-
-    def likeTweets(self):
-        bot_id = # Set this to the accounts ID to prevent it from liking its own tweets
-        auth = tweepy.OAuthHandler(' {TWITTER INFO} ',' {TWITTER INFO} ')
-        auth.set_access_token(' {TWITTER INFO} ',' {TWITTER INFO} ')
-        api = tweepy.API(auth, wait_on_rate_limit=True)
-        blacklist = ['k9', 'biden' , 'trump', 'police', 'officer']
-        already_liked = []
-        like_list = set()
-        tag_list = ['#gooddog','#puppy','#dog']
+class FileHandler:
+    def __init__(self):
+        self.__file_path=os.path.dirname(os.path.realpath(__file__))
+        self.count = self.__fetchPostNumber()
     
-        for x in range(1,3):
-            for i in api.favorites(count = 75, page = x):
-                already_liked.append(i.id)
-            
-            time.sleep(1)
-
-        for x in tag_list:
-            for i in api.search(x,count = 30):
-                if i.user.id != bot_id and not any(x in i.text.lower().split(' ') for x in blacklist) and i.id not in already_liked:
-                    try:
-                        api.create_favorite(i.id)
-                        time.sleep(1)
-                    except tweepy.TweepError:
-                        pass
-        time.sleep(1)
-
-    #get number from file and update file as + 1
-    def postCounter(self):
-        with open(' {POST NUMBER FILE} ', 'r') as read_f: #You will need to create a .txt file with 0 as the starting number.
+    def __fetchPostNumber(self):
+        with open(os.path.join(self.__file_path, "counter.txt"), 'r') as read_f:
             x = read_f.read()
         x = int(x) + 1
         x = str(x)
-        with open(' {POST NUMBER FILE} ', 'w') as write_f:
+        with open(os.path.join(self.__file_path, "counter.txt"), 'w') as write_f:
             write_f.write(x)
         return int(x)
 
-    def runBot(self):
-        x = self.postCounter()
-        self.doggoBot(x)
-        time.sleep(1)
-        self.likeTweets()
+class Bot:
+    def __init__(self):
+        self.run()    
 
-if __name__ == '__main__':
-    bot = DoggoBot()
-    bot.runBot()
+    def run(self):
+        img=ImageHandler()
+        img.fetchImage()
+        tweet=TwitterHandler()
+        tweet.makeTweet()
+        tweet.likeTweets()
+
+if __name__=="__main__":
+    bot = Bot()
