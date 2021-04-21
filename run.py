@@ -29,7 +29,7 @@ class TwitterHandler:
                         pass
 
         for i in self.__api.mentions_timeline(count=25):
-            if i.user.id!=self.__bot_id and not any(i in j.text.lower().split() for i in blacklist):
+            if i.user.id!=self.__bot_id and not any(i in j.text.lower().split() for i in blacklist) and i.id not in already_liked:
                 try:
                     self.__api.create_favorite(i.id)
                 except Exception:
